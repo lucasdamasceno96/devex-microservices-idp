@@ -1,0 +1,14 @@
+# Secret Manager Module
+# Provisions secrets for shared platform configuration.
+# Secret values are managed outside Terraform (via console or gcloud).
+
+resource "google_secret_manager_secret" "secrets" {
+  for_each = var.secret_ids
+
+  secret_id = each.key
+  replication {
+    auto {}
+  }
+}
+
+data "google_project" "project" {}
