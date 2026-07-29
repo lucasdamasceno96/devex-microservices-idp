@@ -1,0 +1,46 @@
+image:
+  repository: ""
+  tag: "latest"
+  pullPolicy: Always
+
+replicaCount: 2
+
+service:
+  port: 3000
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+probes:
+  liveness:
+    path: /health
+    initialDelaySeconds: 10
+    periodSeconds: 15
+  readiness:
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 75
+
+environment:
+  NODE_ENV: "production"
+  LOG_LEVEL: "info"
+
+otel:
+  enabled: true
+  exporterEndpoint: "http://otel-collector.observability:4317"
+
+externalSecrets:
+  enabled: false
+  secretStoreRef: "gcp-secret-manager"
+  secrets: []

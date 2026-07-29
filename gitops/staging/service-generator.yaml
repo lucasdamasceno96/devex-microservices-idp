@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: service-generator
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/lucasdamasceno96/devex-microservices-idp
+    targetRevision: main
+    path: platform/helm-chart
+    helm:
+      values: |
+        image:
+          repository: us-central1-docker.pkg.dev/ldp21k-labs/devex-idp/service-generator
+          tag: latest
+        replicaCount: 2
+        environment:
+          NODE_ENV: "staging"
+          LOG_LEVEL: "info"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

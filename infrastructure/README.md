@@ -1,47 +1,24 @@
-# Infrastructure
+# Infrastructure (Terraform)
 
-GCP infrastructure provisioning via Terraform, organized as reusable modules consumed by environment-specific root modules.
+Provisions the GCP foundation via Terraform using reusable modules. This is the bottom layer of the platform — everything else runs on top of what Terraform creates.
 
-## Structure
+**Owner**: Platform Engineering
 
-```
-terraform/
-├── modules/
-│   ├── network/            # VPC, subnet, Cloud NAT
-│   ├── gke/                # GKE Autopilot cluster (private)
-│   ├── artifact-registry/  # Docker repository
-│   ├── iam/                # Platform service accounts + Workload Identity
-│   └── secret-manager/     # Shared platform secrets
-├── environments/
-│   └── lab/                # Single lab environment (root module)
-└── policies/               # Organization policies and constraints
-```
+**Why it exists**: Without Infrastructure as Code, environments drift, changes are manual, and disaster recovery means rebuilding from memory. Terraform ensures every resource is defined declaratively, versioned, and reproducible.
 
-## Modules
+## What it provisions
 
-| Module | Responsibility |
-|--------|---------------|
-| `network` | VPC, subnet, Cloud Router, Cloud NAT for private egress |
-| `gke` | GKE Autopilot cluster with private nodes |
-| `artifact-registry` | Docker repository for container images |
-| `iam` | Service accounts and Workload Identity bindings for platform controllers |
-| `secret-manager` | Secret Manager secrets for shared configuration |
+| Module | Resources |
+|--------|-----------|
+| `network` | VPC, subnet, Cloud NAT |
+| `gke` | GKE Autopilot cluster (private) |
+| `artifact-registry` | Docker container registry |
+| `iam` | Service accounts + Workload Identity bindings |
+| `secret-manager` | Platform shared secrets |
 
-## Usage
+## How it interacts with the platform
 
-```bash
-cd terraform/environments/lab
-
-# Initialize (requires GCS bucket access)
-terraform init
-
-# Plan
-terraform plan
-
-# Apply
-terraform apply
-```
-
-## State
-
-Remote state is stored in `gs://ldp21k-labs-tfstate/all` with object versioning and locking enabled on the bucket.
+1. Terraform provisions GKE → `kubectl` connects to cluster
+2. ArgoCD installed on cluster → watches `gitops/` directory
+3. External Secrets installed → reads `iam` module's SAs for Workload Identity
+4. CI pipeline pushes images to Artifact Registry → GKE pulls from there

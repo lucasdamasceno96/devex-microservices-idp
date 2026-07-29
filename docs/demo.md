@@ -1,166 +1,112 @@
 # Demo Flow
 
-This document describes the end-to-end demo walkthrough — from a developer writing code to the application running in production on GKE.
+This document is designed for live portfolio demonstrations. Each step is timed and maps to a specific Platform Engineering concept.
 
-## Prerequisites
+## Pre-Demo Checklist
 
-- GCP project with GKE cluster provisioned (via Terraform in `infrastructure/`)
-- GitOps controller (Flux/Argo CD) running in the cluster
-- GitHub Actions configured with GCP workload identity federation
-- Artifact Registry for container images
+- [ ] GCP project accessible (`gcloud auth list`)
+- [ ] Terraform initialized (`infrastructure/terraform/environments/lab/`)
+- [ ] ArgoCD UI accessible (port-forward or load balancer)
+- [ ] Artifact Registry has at least one image
+- [ ] Terminal font size is large enough for screen sharing
 
----
+## Demo Script (15 minutes)
 
-## Scenario: Deploy a New Microservice
+### Phase 1: Architecture Overview (3 min)
 
-A developer is tasked with creating a new `user-service` microservice.
+**Show**: `docs/architecture.md` ASCII diagram
 
-### Step 1: Scaffold the Service (Developer)
+**Say**: "This is a layered Internal Developer Platform. Developers interact with Git. CI builds containers. ArgoCD deploys them. The platform provides shared services — secret management, observability, ingress. The infrastructure is provisioned with Terraform."
 
-The developer uses the Backstage scaffolder or a CLI template to bootstrap the new service:
-
-```
-Workload template generates:
-  workloads/apps/user-service/
-    base/
-      kustomization.yaml
-      deployment.yaml
-      service.yaml
-      hpa.yaml
-    overlays/
-      staging/
-        kustomization.yaml
-        ingress-patch.yaml
-      production/
-        kustomization.yaml
-        ingress-patch.yaml
-```
-
-The template encodes best practices: resource limits, liveness/readiness probes, PodDisruptionBudget, HPA, and Workload Identity annotation.
-
-### Step 2: Write and Push Code (Developer)
-
-The developer writes the application logic and pushes to the source repository.
-
-```
-git add .
-git commit -m "feat(user-service): initial implementation"
-git push
-```
-
-### Step 3: CI Pipeline Executes (GitHub Actions)
-
-The CI pipeline defined in `ci-cd/pipelines/` triggers on push:
-
-```
-1. Lint (golangci-lint, eslint, etc.)
-2. Unit tests
-3. Container build (Dockerfile → image tag)
-4. Vulnerability scan (Trivy / Grype)
-5. Push image to Artifact Registry (us-central1-docker.pkg.dev/<project>/<repo>/user-service:<sha>)
-6. Clone the GitOps repository
-7. Update the staging overlay with the new image tag
-8. Open a PR against the GitOps repository
-```
-
-The CI pipeline never touches the cluster — it only updates the GitOps repo.
-
-### Step 4: GitOps Reconciliation (Staging)
-
-The GitOps controller detects the new commit in the GitOps repository:
-
-```
-Flux/Argo CD:
-  1. Pulls the updated staging overlay
-  2. Diffs desired state against live cluster state
-  3. Applies changes — creates/updates Deployment, Service, Ingress
-  4. Reports health status back to the GitOps repository (commit status)
-```
-
-Within ~2 minutes, `user-service` is live in staging with:
-- Automatic TLS via cert-manager
-- DNS via external-dns
-- Metrics scraped by Prometheus
-- Logs streamed to Loki
-- Traces sampled via OpenTelemetry
-
-### Step 5: Validate in Staging (Developer)
-
-The developer validates the service in staging:
-
-```
-# Port-forward via Backstage or CLI
-./scripts/dev-port-forward.sh user-service staging
-
-# Check logs
-kubectl logs -n staging -l app=user-service
-
-# Check metrics
-Open Grafana dashboard for user-service → verify 200 responses, low latency
-
-# Run integration tests
-Integration tests execute against the staging endpoint
-```
-
-### Step 6: Promote to Production (Developer)
-
-Once validated, the developer promotes to production by merging the staging overlay changes into the production overlay:
-
-```
-PR: "promotion: user-service to production"
-  - Copies staging overlay changes to production/
-  - Adjusts replica count (1 → 3)
-  - Adjusts resource limits (development → production sizing)
-```
-
-This PR requires approval from a platform engineer or senior developer (protected branch, CODEOWNERS).
-
-### Step 7: GitOps Reconciliation (Production)
-
-Same reconciliation loop as staging, now targeting the production cluster:
-
-```
-Flux/Argo CD:
-  1. Detects commit to production overlay
-  2. Reconciles production cluster
-  3. user-service is live in production
-```
-
-### Step 8: Observe and Monitor
-
-With the service live in production:
-
-```
-Grafana Dashboard: golden signals — latency, errors, traffic, saturation
-Loki: structured log queries with automatic labels from OpenTelemetry
-Tempo: trace waterfall for distributed request debugging
-Alerts: Alertmanager rules trigger on error budget burn, high latency
-```
+**Concept**: Platform Engineering abstracts infrastructure complexity.
 
 ---
 
-## Rollback Flow
+### Phase 2: Repository Tour (2 min)
 
-If a production issue is detected:
+**Show**: File tree in IDE
 
-```
-1. Developer identifies the bad commit in the GitOps repo
-2. Runs: git revert <bad-commit> && git push
-3. Opens PR for the revert
-4. Merge → GitOps controller reconciles → service rolls back
-```
+**Say**: "The repository is organized by concern — infrastructure, platform, apps, GitOps. Each directory has a README explaining what it is, why it exists, and who owns it. This is important because in a real organization, different teams own different parts."
 
-Rollback is just a Git operation. No direct cluster access required.
+**Concept**: Clear ownership boundaries enable platform adoption.
 
 ---
 
-## Key Demo Takeaways
+### Phase 3: Infrastructure as Code (3 min)
 
-| Principle | Demonstrated By |
-|-----------|----------------|
-| **Self-service** | Developer scaffolds a new service without a platform ticket |
-| **Everything as Code** | Infrastructure, platform config, and app manifests — all in Git |
-| **CI vs CD separation** | CI builds & pushes; GitOps deploys. CI never touches the cluster |
-| **Auditable deployments** | Every change is a PR with review, approval, and revert capability |
-| **Drift detection** | GitOps controller continuously reconciles — manual changes are reverted |
-| **Golden paths** | Templates encode best practices so developers default to the right thing |
+**Show**: `infrastructure/terraform/modules/`
+
+**Say**: "Five reusable modules provision the GCP foundation. Network, GKE Autopilot, Artifact Registry, IAM with Workload Identity, and Secret Manager. The lab environment wires them together. Running `terraform apply` creates everything needed for the platform."
+
+**Run**: `terraform plan` in `infrastructure/terraform/environments/lab/`
+
+**Concept**: Infrastructure as Code ensures reproducibility and auditability.
+
+---
+
+### Phase 4: CI Pipeline (2 min)
+
+**Show**: `.github/workflows/ci.yml`
+
+**Say**: "One reusable workflow for all services. Lint, test, SAST, build, Trivy scan, push to Artifact Registry, update GitOps. Note that CI never touches the cluster — it only writes to Git."
+
+**Concept**: CI builds artifacts; CD deploys them. These are separate concerns.
+
+---
+
+### Phase 5: GitOps Deployment (3 min)
+
+**Show**: ArgoCD UI
+
+**Say**: "Here's the ArgoCD dashboard. This Application was deployed by simply adding a YAML file to the `gitops/dev/` directory. ArgoCD detected the change via Git webhook and reconciled the cluster. The service is healthy — all probes pass."
+
+**Show**: `gitops/dev/service-generator.yaml`
+
+**Say**: "This is the entire deployment definition. It references the Helm chart with environment-specific values. To promote to staging, I copy this file to `gitops/staging/` and adjust replicas from 1 to 2. Promotion is a Git operation."
+
+**Concept**: Git is the single source of truth. Drift is auto-corrected.
+
+---
+
+### Phase 6: Runtime Validation (2 min)
+
+**Show**: `curl /health` and `curl /metrics`
+
+**Say**: "Every service exposes `/health` and `/metrics`. Kubernetes uses health for liveness and readiness probes. Prometheus scrapes metrics. Structured JSON logs go to Cloud Logging. OpenTelemetry traces go to Tempo."
+
+**Show**: Structured log output
+
+**Concept**: Golden Path services get observability for free — they don't configure it, the Helm chart provides it.
+
+---
+
+## Live Demo Risks & Mitigations
+
+| Risk | Mitigation |
+|------|-----------|
+| GKE cluster not ready | Terraform apply done before demo |
+| ArgoCD not synced | Force sync before showing UI |
+| Network issues | Have screenshots as backup |
+| GCP quota exceeded | Have a second project ready |
+| Container pull fails | Pre-pull image to cluster nodes |
+
+## Screenshot Placeholders
+
+Insert screenshots of:
+- [ ] ArgoCD dashboard showing healthy application
+- [ ] Grafana dashboard with golden signals
+- [ ] Cloud Logging with structured log query
+- [ ] GitHub Actions CI pipeline run
+- [ ] Terraform plan output
+- [ ] `kubectl get applications -n argocd`
+- [ ] `curl /health` response
+- [ ] Secret Manager console showing secrets
+
+## GIF Placeholder
+
+Insert a screen recording GIF showing:
+1. Developer pushes code
+2. GitHub Actions runs
+3. ArgoCD auto-syncs
+4. Service is live
+5. Developer curls the endpoint

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevEx IDP - Service Generator</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; min-height: 100vh; }
+    .container { max-width: 800px; margin: 0 auto; padding: 4rem 2rem; }
+    h1 { font-size: 2rem; color: #58a6ff; margin-bottom: 0.5rem; }
+    .subtitle { color: #8b949e; font-size: 1rem; margin-bottom: 2rem; }
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card h2 { font-size: 1.1rem; color: #f0f6fc; margin-bottom: 0.5rem; }
+    .card p { color: #8b949e; font-size: 0.9rem; }
+    .badge { display: inline-block; background: #238636; color: #fff; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; margin-left: 0.5rem; }
+    .status { display: flex; gap: 1rem; margin-top: 1rem; }
+    .status-item { flex: 1; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 1rem; text-align: center; }
+    .status-item .label { font-size: 0.8rem; color: #8b949e; }
+    .status-item .value { font-size: 1.5rem; font-weight: bold; color: #7ee787; margin-top: 0.25rem; }
+    .endpoint { background: #0d1117; border-radius: 4px; padding: 0.5rem 0.75rem; margin-top: 0.5rem; font-family: monospace; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>devex-microservices-idp <span class="badge">v1.0.0</span></h1>
+    <p class="subtitle">Internal Developer Platform — Service Generator UI</p>
+
+    <div class="status">
+      <div class="status-item">
+        <div class="label">Backend Status</div>
+        <div class="value" id="backend-status">Checking...</div>
+      </div>
+      <div class="status-item">
+        <div class="label">Version</div>
+        <div class="value" id="backend-version">-</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 1.5rem;">
+      <h2>Golden Path Endpoints</h2>
+      <div class="endpoint">GET  /health</div>
+      <div class="endpoint">GET  /metrics</div>
+      <div class="endpoint">GET  /</div>
+    </div>
+
+    <div class="card">
+      <h2>About this Platform</h2>
+      <p>This Internal Developer Platform abstracts infrastructure complexity behind a self-service, GitOps-driven interface. Developers deploy to production by merging a PR — no kubectl, no Terraform, no tickets.</p>
+    </div>
+  </div>
+
+  <script>
+    async function checkBackend() {
+      try {
+        const res = await fetch('/api/health');
+        const data = await res.json();
+        document.getElementById('backend-status').textContent = data.status;
+        document.getElementById('backend-status').style.color = '#7ee787';
+        document.getElementById('backend-version').textContent = 'v1.0.0';
+      } catch {
+        document.getElementById('backend-status').textContent = 'Offline';
+        document.getElementById('backend-status').style.color = '#f85149';
+      }
+    }
+    checkBackend();
+  </script>
+</body>
+</html>

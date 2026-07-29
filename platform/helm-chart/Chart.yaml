@@ -1,0 +1,6 @@
+apiVersion: v2
+name: service-generator
+description: Helm chart for generated microservices following the Golden Path
+type: application
+version: 0.1.0
+appVersion: "latest"

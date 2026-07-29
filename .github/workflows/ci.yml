@@ -1,0 +1,140 @@
+name: "CI Pipeline - Golden Path"
+
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        description: "Name of the service being built"
+        required: true
+        type: string
+      service_path:
+        description: "Path to the service source code"
+        required: true
+        type: string
+      gitops_repo:
+        description: "GitOps repository for image tag updates"
+        required: false
+        type: string
+        default: "lucasdamasceno96/devex-microservices-idp"
+      environment:
+        description: "Target environment (dev, staging, production)"
+        required: false
+        type: string
+        default: "dev"
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      security-events: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: ${{ inputs.service_path }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ inputs.service_path }}
+        run: npm ci
+
+      - name: ESLint
+        working-directory: ${{ inputs.service_path }}
+        run: npm run lint
+
+      - name: Unit Tests
+        working-directory: ${{ inputs.service_path }}
+        run: npm test
+
+      - name: Coverage
+        working-directory: ${{ inputs.service_path }}
+        run: npm run test:cov
+
+      - name: Semgrep SAST
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: p/default
+          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
+        continue-on-error: true
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev -q
+
+      - name: Build Docker image
+        working-directory: ${{ inputs.service_path }}
+        run: |
+          IMAGE_TAG="us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/devex-idp/${{ inputs.service_name }}:${{ github.sha }}"
+          docker build -t $IMAGE_TAG .
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_TAG }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+
+      - name: Push to Artifact Registry
+        run: docker push ${{ env.IMAGE_TAG }}
+
+      - name: Update GitOps image tag
+        run: |
+          git clone https://x-access-token:${{ secrets.GITOPS_TOKEN }}@github.com/${{ inputs.gitops_repo }}.git /tmp/gitops
+          cd /tmp/gitops
+          YAML_FILE="gitops/${{ inputs.environment }}/${{ inputs.service_name }}.yaml"
+
+          if [ -f "$YAML_FILE" ]; then
+            sed -i "s|image:.*|image: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/devex-idp/${{ inputs.service_name }}:${{ github.sha }}|g" "$YAML_FILE"
+          else
+            cat > "$YAML_FILE" << 'EOF'
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ${{ inputs.service_name }}
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/${{ inputs.gitops_repo }}
+    targetRevision: main
+    path: gitops/${{ inputs.environment }}/charts/${{ inputs.service_name }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ${{ inputs.environment }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+EOF
+          fi
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add .
+          git commit -m "ci(${{ inputs.service_name }}): update image to ${{ github.sha }}" || echo "No changes"
+          git push
