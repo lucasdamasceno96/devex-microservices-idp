@@ -1,8 +1,12 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: service-generator
+  name: service-generator-dev
   namespace: argocd
+  labels:
+    team: platform-team
+    environment: dev
+    generated-by: idp-portal
 spec:
   project: default
   source:
@@ -10,14 +14,12 @@ spec:
     targetRevision: main
     path: platform/helm-chart
     helm:
-      values: |
-        image:
-          repository: us-central1-docker.pkg.dev/ldp21k-labs/devex-idp/service-generator
-          tag: latest
-        replicaCount: 1
-        environment:
-          NODE_ENV: "development"
-          LOG_LEVEL: "debug"
+      values: "autoscaling:\n  enabled: true\n  maxReplicas: 5\n  minReplicas: 1\n\
+        \  targetCPUUtilizationPercentage: 75\nenvironment:\n  LOG_LEVEL: debug\n\
+        \  NODE_ENV: development\nimage:\n  pullPolicy: Always\n  repository: us-central1-docker.pkg.dev/ldp21k-labs/devex-idp/service-generator\n\
+        \  tag: latest\notel:\n  enabled: true\n  exporterEndpoint: http://otel-collector.observability:4317\n\
+        replicaCount: 1\nresources:\n  limits:\n    cpu: 256m\n    memory: 256Mi\n\
+        \  requests:\n    cpu: 128m\n    memory: 128Mi\nservice:\n  port: 3000\n"
   destination:
     server: https://kubernetes.default.svc
     namespace: dev
