@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: notification-service-staging
+  namespace: argocd
+  labels:
+    team: notifications-team
+    environment: staging
+    generated-by: idp-portal
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/lucasdamasceno96/devex-microservices-idp
+    targetRevision: main
+    path: platform/helm-chart
+    helm:
+      values: "autoscaling:\n  enabled: true\n  maxReplicas: 10\n  minReplicas: 2\n\
+        \  targetCPUUtilizationPercentage: 75\nenvironment:\n  LOG_LEVEL: info\n \
+        \ NODE_ENV: staging\nimage:\n  pullPolicy: Always\n  repository: us-central1-docker.pkg.dev/ldp21k-labs/devex-idp/notification-service\n\
+        \  tag: latest\notel:\n  enabled: true\n  exporterEndpoint: http://otel-collector.observability:4317\n\
+        replicaCount: 2\nresources:\n  limits:\n    cpu: 512m\n    memory: 512Mi\n\
+        \  requests:\n    cpu: 256m\n    memory: 256Mi\nservice:\n  port: 3000\n"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
