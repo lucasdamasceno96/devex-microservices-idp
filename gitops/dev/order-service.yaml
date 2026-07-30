@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: order-service-dev
+  namespace: argocd
+  labels:
+    team: orders-team
+    environment: dev
+    generated-by: idp-portal
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/lucasdamasceno96/devex-microservices-idp
+    targetRevision: main
+    path: platform/helm-chart
+    helm:
+      values: "autoscaling:\n  enabled: true\n  maxReplicas: 5\n  minReplicas: 1\n\
+        \  targetCPUUtilizationPercentage: 75\nenvironment:\n  LOG_LEVEL: debug\n\
+        \  NODE_ENV: development\nimage:\n  pullPolicy: Always\n  repository: us-central1-docker.pkg.dev/ldp21k-labs/devex-idp/order-service\n\
+        \  tag: latest\notel:\n  enabled: true\n  exporterEndpoint: http://otel-collector.observability:4317\n\
+        replicaCount: 1\nresources:\n  limits:\n    cpu: 256m\n    memory: 256Mi\n\
+        \  requests:\n    cpu: 128m\n    memory: 128Mi\nservice:\n  port: 3000\n"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
