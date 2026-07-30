@@ -2,9 +2,6 @@
 # Creates platform service accounts and grants Workload Identity bindings
 # so GKE workloads can assume GCP IAM roles without static keys.
 
-# Fetch the existing GCP project
-data "google_project" "project" {}
-
 # Platform service account - used by the GitOps controller (future: Flux/Argo CD)
 resource "google_service_account" "gitops_sa" {
   account_id   = var.gitops_sa_id
@@ -14,7 +11,7 @@ resource "google_service_account" "gitops_sa" {
 
 # Grant Artifact Registry Reader to the GitOps SA so it can pull images
 resource "google_project_iam_member" "gitops_ar_reader" {
-  project = data.google_project.project.project_id
+  project = var.project_id
   role    = "roles/artifactregistry.reader"
   member  = "serviceAccount:${google_service_account.gitops_sa.email}"
 }
@@ -23,7 +20,7 @@ resource "google_project_iam_member" "gitops_ar_reader" {
 resource "google_service_account_iam_member" "gitops_workload_identity" {
   service_account_id = google_service_account.gitops_sa.name
   role               = "roles/iam.workloadIdentityUser"
-  member             = "serviceAccount:${data.google_project.project.project_id}.svc.id.goog[${var.gitops_namespace}/${var.gitops_ksa_name}]"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[${var.gitops_namespace}/${var.gitops_ksa_name}]"
 }
 
 resource "google_service_account" "external_secrets_sa" {
@@ -34,7 +31,7 @@ resource "google_service_account" "external_secrets_sa" {
 
 # Grant Secret Manager access to the External Secrets SA
 resource "google_project_iam_member" "external_secrets_secret_accessor" {
-  project = data.google_project.project.project_id
+  project = var.project_id
   role    = "roles/secretmanager.secretAccessor"
   member  = "serviceAccount:${google_service_account.external_secrets_sa.email}"
 }
@@ -43,5 +40,5 @@ resource "google_project_iam_member" "external_secrets_secret_accessor" {
 resource "google_service_account_iam_member" "external_secrets_workload_identity" {
   service_account_id = google_service_account.external_secrets_sa.name
   role               = "roles/iam.workloadIdentityUser"
-  member             = "serviceAccount:${data.google_project.project.project_id}.svc.id.goog[${var.external_secrets_namespace}/${var.external_secrets_ksa_name}]"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[${var.external_secrets_namespace}/${var.external_secrets_ksa_name}]"
 }

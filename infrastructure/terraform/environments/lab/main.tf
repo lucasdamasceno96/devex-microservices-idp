@@ -58,12 +58,13 @@ module "artifact_registry" {
 module "iam" {
   source = "../../modules/iam"
 
-  gitops_sa_id                = var.gitops_sa_id
-  gitops_namespace            = var.gitops_namespace
-  gitops_ksa_name             = var.gitops_ksa_name
-  external_secrets_sa_id      = var.external_secrets_sa_id
-  external_secrets_namespace  = var.external_secrets_namespace
-  external_secrets_ksa_name   = var.external_secrets_ksa_name
+  project_id                 = var.project_id
+  gitops_sa_id               = var.gitops_sa_id
+  gitops_namespace           = var.gitops_namespace
+  gitops_ksa_name            = var.gitops_ksa_name
+  external_secrets_sa_id     = var.external_secrets_sa_id
+  external_secrets_namespace = var.external_secrets_namespace
+  external_secrets_ksa_name  = var.external_secrets_ksa_name
 
   depends_on = [google_project_service.services]
 }
@@ -72,6 +73,7 @@ module "iam" {
 module "secret_manager" {
   source = "../../modules/secret-manager"
 
+  project_id = var.project_id
   secret_ids = var.secret_ids
 
   depends_on = [google_project_service.services]

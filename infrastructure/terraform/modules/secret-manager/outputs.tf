@@ -5,5 +5,5 @@ output "secret_names" {
 
 output "project_id" {
   description = "Project ID where secrets are stored"
-  value       = data.google_project.project.project_id
+  value       = var.project_id
 }

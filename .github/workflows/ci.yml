@@ -111,7 +111,7 @@ jobs:
           if [ -f "$YAML_FILE" ]; then
             sed -i "s|image:.*|image: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/devex-idp/${{ inputs.service_name }}:${{ github.sha }}|g" "$YAML_FILE"
           else
-            cat > "$YAML_FILE" << 'EOF'
+            cat > "$YAML_FILE" << EOF
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:

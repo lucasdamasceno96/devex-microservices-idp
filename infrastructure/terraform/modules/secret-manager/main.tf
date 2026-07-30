@@ -6,9 +6,10 @@ resource "google_secret_manager_secret" "secrets" {
   for_each = var.secret_ids
 
   secret_id = each.key
+  project   = var.project_id
   replication {
     auto {}
   }
 }
 
-data "google_project" "project" {}
+# Secret values are managed outside Terraform (via console or gcloud).

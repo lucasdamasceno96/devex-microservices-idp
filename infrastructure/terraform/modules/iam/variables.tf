@@ -1,3 +1,8 @@
+variable "project_id" {
+  description = "GCP project ID"
+  type        = string
+}
+
 variable "gitops_sa_id" {
   description = "ID for the GitOps controller service account"
   type        = string
