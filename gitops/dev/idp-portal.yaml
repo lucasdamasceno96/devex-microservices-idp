@@ -14,12 +14,37 @@ spec:
     targetRevision: main
     path: platform/helm-chart
     helm:
-      values: "autoscaling:\n  enabled: true\n  maxReplicas: 5\n  minReplicas: 1\n\
-        \  targetCPUUtilizationPercentage: 75\nenvironment:\n  LOG_LEVEL: debug\n\
-        \  NODE_ENV: development\nimage:\n  pullPolicy: Always\n  repository: us-central1-docker.pkg.dev/ldp21k-labs/devex-idp/idp-portal\n\
-        \  tag: latest\notel:\n  enabled: true\n  exporterEndpoint: http://otel-collector.observability:4317\n\
-        replicaCount: 1\nresources:\n  limits:\n    cpu: 256m\n    memory: 256Mi\n\
-        \  requests:\n    cpu: 128m\n    memory: 128Mi\nservice:\n  port: 8501\n"
+      values: |
+        image:
+          repository: us-central1-docker.pkg.dev/ldp21k-labs/devex-idp/idp-portal
+          tag: latest
+          pullPolicy: Always
+        replicaCount: 1
+        service:
+          port: 8501
+        probes:
+          liveness:
+            path: /_stcore/health
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readiness:
+            path: /_stcore/health
+            initialDelaySeconds: 10
+            periodSeconds: 10
+        resources:
+          requests:
+            cpu: 512m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+        environment:
+          NODE_ENV: "development"
+          LOG_LEVEL: "debug"
+        autoscaling:
+          enabled: false
+        otel:
+          enabled: false
   destination:
     server: https://kubernetes.default.svc
     namespace: dev

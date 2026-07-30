@@ -107,34 +107,13 @@ jobs:
           git clone https://x-access-token:${{ secrets.GITOPS_TOKEN }}@github.com/${{ inputs.gitops_repo }}.git /tmp/gitops
           cd /tmp/gitops
           YAML_FILE="gitops/${{ inputs.environment }}/${{ inputs.service_name }}.yaml"
-
           if [ -f "$YAML_FILE" ]; then
-            sed -i "s|image:.*|image: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/devex-idp/${{ inputs.service_name }}:${{ github.sha }}|g" "$YAML_FILE"
+            sed -i "s|tag:.*|tag: ${{ github.sha }}|g" "$YAML_FILE"
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git add "$YAML_FILE"
+            git commit -m "ci(${{ inputs.service_name }}): update image to ${{ github.sha }}" || echo "No changes to commit"
+            git push
           else
-            cat > "$YAML_FILE" << EOF
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: ${{ inputs.service_name }}
-  namespace: argocd
-spec:
-  project: default
-  source:
-    repoURL: https://github.com/${{ inputs.gitops_repo }}
-    targetRevision: main
-    path: gitops/${{ inputs.environment }}/charts/${{ inputs.service_name }}
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: ${{ inputs.environment }}
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-EOF
+            echo "GitOps file not found: $YAML_FILE — skipping (create via IDP portal first)"
           fi
-
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add .
-          git commit -m "ci(${{ inputs.service_name }}): update image to ${{ github.sha }}" || echo "No changes"
-          git push
