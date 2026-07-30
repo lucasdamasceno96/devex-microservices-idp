@@ -2,6 +2,18 @@
 
 > Internal Developer Platform · Golden Path by Default · GitOps from Day One
 
+<div align="center">
+  <!-- Badges -->
+  <img src="https://img.shields.io/badge/Google_Cloud-%234285F4.svg?style=for-the-badge&logo=google-cloud&logoColor=white" />
+  <img src="https://img.shields.io/badge/GKE_Autopilot-%234285F4.svg?style=for-the-badge&logo=kubernetes&logoColor=white" />
+  <img src="https://img.shields.io/badge/Terraform-%235835CC.svg?style=for-the-badge&logo=terraform&logoColor=white" />
+  <img src="https://img.shields.io/badge/ArgoCD-%23EF7B4D.svg?style=for-the-badge&logo=argo-cd&logoColor=white" />
+  <img src="https://img.shields.io/badge/GitHub_Actions-%232671E5.svg?style=for-the-badge&logo=githubactions&logoColor=white" />
+  <img src="https://img.shields.io/badge/Helm-%230F1689.svg?style=for-the-badge&logo=helm&logoColor=white" />
+  <img src="https://img.shields.io/badge/NestJS-%23E0234E.svg?style=for-the-badge&logo=nestjs&logoColor=white" />
+  <img src="https://img.shields.io/badge/Workload_Identity-green" />
+</div>
+
 **Built with**: Google Cloud Platform · Kubernetes (GKE Autopilot) · ArgoCD · Terraform · NestJS · OpenTelemetry
 
 ---
@@ -260,24 +272,39 @@ kubectl port-forward -n argocd svc/argocd-server 8080:443
 
 ---
 
-## Screenshot Placeholders
+## Proof of Concept
 
-- [ ] ArgoCD dashboard — all applications green, auto-sync enabled
-- [ ] GitHub Actions CI pipeline — all steps passing
-- [ ] Grafana dashboard — golden signals for service-generator
-- [ ] Cloud Logging — structured JSON log entry
-- [ ] Terraform plan — 14 resources to create
-- [ ] Secret Manager — platform secrets listed
-- [ ] `curl /health` — healthy response with uptime
+### 1. IDP Portal — Service Registration Form
 
-## Demo GIF Placeholder
+The Internal Developer Platform portal where developers register a new microservice. They fill in the service name, select the target environments, and the platform generates all GitOps manifests automatically — no kubectl, no Helm templating, no tickets.
 
-Insert a screen recording showing the full flow:
-1. Developer pushes to GitHub
-2. CI pipeline runs (GitHub Actions)
-3. ArgoCD syncs the change
-4. Service is live
-5. Developer curls `/health` — `{"status":"healthy"}`
+<p align="center">
+  <img src="assets/01-idp-form-ms.jpg" alt="IDP Portal — form to register a new microservice with environment selection" width="800" />
+</p>
+
+### 2. ArgoCD — Three Applications (dev, staging, production)
+
+ArgoCD dashboard showing the three auto-generated Applications — one per environment (`dev`, `staging`, `production`). Each application syncs from the GitOps repo and deploys the service to its respective namespace with auto-sync enabled.
+
+<p align="center">
+  <img src="assets/02-idp-argo-3apps.jpg" alt="ArgoCD dashboard — three applications for dev, staging, and production" width="800" />
+</p>
+
+### 3. Kubernetes — Namespace Isolation
+
+`kubectl get namespaces` output showing the full cluster namespace layout. The platform-provisioned namespaces — **dev**, **staging**, and **production** — are highlighted, demonstrating environment isolation with resource quotas and RBAC enforced per namespace.
+
+<p align="center">
+  <img src="assets/03-k8s-cli-ns-idp.jpg" alt="kubectl get namespaces — dev, staging, and production namespaces highlighted" width="800" />
+</p>
+
+### 4. GCP Artifact Registry — Container Images
+
+Google Cloud Artifact Registry listing the container images built and pushed by the CI pipeline. Each microservice (`service-generator`, `order-service`, `notification-service`) is tagged and stored in a regional registry — ready for ArgoCD to pull and deploy.
+
+<p align="center">
+  <img src="assets/04-idp-art-register.jpg" alt="GCP Artifact Registry — microservice container images" width="800" />
+</p>
 
 ---
 
