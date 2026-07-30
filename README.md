@@ -1,6 +1,11 @@
-# devex-microservices-idp
+<div align="center">
+  <img src="assets/idp.jpg" alt="Cloud Architect Concept" width="500" style="border-radius: 15px;"/>
 
-> Internal Developer Platform · Golden Path by Default · GitOps from Day One
+  <h1>Internal Developer Platform · Golden Path by Default · GitOps from Day One </h1>
+
+</div>
+
+<br>
 
 <div align="center">
   <!-- Badges -->
@@ -92,16 +97,16 @@ devex-microservices-idp/
 
 ### Key Concepts Embedded in Each Directory
 
-| Directory | Platform Engineering Concept |
-|-----------|---------------------------|
-| `apps/` | **Golden Path** — every service follows the same conventions; templates encode best practices |
-| `infrastructure/` | **Infrastructure as Code** — Git is the source of truth for cloud resources; state is remote and locked |
-| `platform/` | **Shared Services** — install once, consume everywhere; platform team owns, dev teams use |
-| `services/` | **Escape Hatches** — Golden Path for 95%; custom overrides for the 5% that need them |
-| `gitops/` | **Git as Control Plane** — desired state in Git, controller reconciles, drift is auto-corrected |
-| `.github/workflows/` | **CI/CD Separation** — CI builds artifacts; CD (GitOps) deploys them; CI never touches the cluster |
-| `scripts/` | **Operator Experience** — reduces multi-step workflows to single commands |
-| `docs/` | **Documentation as Product** — onboarding time reduced from weeks to hours |
+| Directory            | Platform Engineering Concept                                                                            |
+| -------------------- | ------------------------------------------------------------------------------------------------------- |
+| `apps/`              | **Golden Path** — every service follows the same conventions; templates encode best practices           |
+| `infrastructure/`    | **Infrastructure as Code** — Git is the source of truth for cloud resources; state is remote and locked |
+| `platform/`          | **Shared Services** — install once, consume everywhere; platform team owns, dev teams use               |
+| `services/`          | **Escape Hatches** — Golden Path for 95%; custom overrides for the 5% that need them                    |
+| `gitops/`            | **Git as Control Plane** — desired state in Git, controller reconciles, drift is auto-corrected         |
+| `.github/workflows/` | **CI/CD Separation** — CI builds artifacts; CD (GitOps) deploys them; CI never touches the cluster      |
+| `scripts/`           | **Operator Experience** — reduces multi-step workflows to single commands                               |
+| `docs/`              | **Documentation as Product** — onboarding time reduced from weeks to hours                              |
 
 ---
 
@@ -149,6 +154,7 @@ The Golden Path is the supported, recommended way to deploy. Teams that follow i
 ```
 
 **Key insight**: CI never touches the cluster. CI builds images and updates the GitOps repo. ArgoCD pulls desired state from Git and pushes it to the cluster. This separation means:
+
 - CI doesn't need cluster credentials (security win)
 - Cluster state is always in Git (auditability win)
 - Drift is auto-corrected (reliability win)
@@ -160,6 +166,7 @@ The Golden Path is the supported, recommended way to deploy. Teams that follow i
 ### GitOps (Pull-based Deployment)
 
 Traditional CI/CD pushes to the cluster. GitOps reverses this — a controller inside the cluster pulls desired state from Git. Benefits:
+
 - **No credential sprawl**: Only the controller (ArgoCD) has cluster write access
 - **Continuous reconciliation**: If someone manually edits a deployment, ArgoCD reverts it within 3 minutes
 - **Git as audit log**: Every deployment is a commit; every rollback is `git revert`
@@ -167,6 +174,7 @@ Traditional CI/CD pushes to the cluster. GitOps reverses this — a controller i
 ### Workload Identity
 
 GKE Workload Identity maps Kubernetes ServiceAccounts to GCP IAM ServiceAccounts. No static keys:
+
 ```
 K8s SA "flux" (namespace: flux-system)
   └── annotation ──► GCP SA "devex-idp-gitops"
@@ -178,6 +186,7 @@ The pod's token is automatically rotated by the GKE metadata server. Zero secret
 ### External Secrets
 
 Secrets never touch Git. The flow:
+
 ```
 GCP Secret Manager → External Secrets Operator → Kubernetes Secret → Pod env var
 ```
@@ -187,6 +196,7 @@ ESO authenticates via Workload Identity (no static credentials) and refreshes se
 ### Helm Chart as Golden Path
 
 A single Helm chart (`platform/helm-chart/`) is the template for every service. It encodes:
+
 - Deployment with resource requests/limits
 - Service (ClusterIP)
 - HPA
@@ -257,18 +267,18 @@ kubectl port-forward -n argocd svc/argocd-server 8080:443
 
 ## Technology Stack
 
-| Layer | Technology | Why |
-|-------|-----------|-----|
-| Cloud | Google Cloud Platform | Industry standard; GKE is the most mature managed K8s |
-| Orchestration | GKE Autopilot | Zero node management; pay-per-pod for portfolio scope |
-| IaC | Terraform | De facto standard; GCS remote state with locking |
-| GitOps | ArgoCD | CNCF graduated; App of Apps pattern; webhook triggers |
-| Secrets | GCP Secret Manager + External Secrets Operator | Secrets never in Git; native K8s Secret consumption |
-| CI | GitHub Actions (reusable workflow) | Tight GitHub integration; workflow_call enables DRY |
-| Runtime | NestJS + TypeScript | Enterprise Node.js framework; decorators + DI + OpenAPI |
-| Observability | OpenTelemetry + Pino | Vendor-neutral tracing; structured JSON logging |
-| Security | Trivy + Semgrep + Gitleaks | Shift-left: scan in CI, enforce on every PR |
-| Chart | Helm | Kubernetes package manager; values-driven customization |
+| Layer         | Technology                                     | Why                                                     |
+| ------------- | ---------------------------------------------- | ------------------------------------------------------- |
+| Cloud         | Google Cloud Platform                          | Industry standard; GKE is the most mature managed K8s   |
+| Orchestration | GKE Autopilot                                  | Zero node management; pay-per-pod for portfolio scope   |
+| IaC           | Terraform                                      | De facto standard; GCS remote state with locking        |
+| GitOps        | ArgoCD                                         | CNCF graduated; App of Apps pattern; webhook triggers   |
+| Secrets       | GCP Secret Manager + External Secrets Operator | Secrets never in Git; native K8s Secret consumption     |
+| CI            | GitHub Actions (reusable workflow)             | Tight GitHub integration; workflow_call enables DRY     |
+| Runtime       | NestJS + TypeScript                            | Enterprise Node.js framework; decorators + DI + OpenAPI |
+| Observability | OpenTelemetry + Pino                           | Vendor-neutral tracing; structured JSON logging         |
+| Security      | Trivy + Semgrep + Gitleaks                     | Shift-left: scan in CI, enforce on every PR             |
+| Chart         | Helm                                           | Kubernetes package manager; values-driven customization |
 
 ---
 
@@ -310,13 +320,13 @@ Google Cloud Artifact Registry listing the container images built and pushed by 
 
 ## Documentation Index
 
-| Document | Audience |
-|----------|----------|
-| [Architecture](docs/architecture.md) | Everyone |
-| [Decisions (ADR)](docs/decisions.md) | Architects, interviewers |
-| [Repository Structure](docs/repository.md) | Contributors |
-| [Deployment Guide](docs/deployment.md) | Platform operators |
-| [Walkthrough](docs/walkthrough.md) | Developers |
-| [Demo Flow](docs/demo.md) | Presenters |
-| [Interview Prep](docs/interview.md) | You |
-| [Troubleshooting](docs/troubleshooting.md) | Operations |
+| Document                                   | Audience                 |
+| ------------------------------------------ | ------------------------ |
+| [Architecture](docs/architecture.md)       | Everyone                 |
+| [Decisions (ADR)](docs/decisions.md)       | Architects, interviewers |
+| [Repository Structure](docs/repository.md) | Contributors             |
+| [Deployment Guide](docs/deployment.md)     | Platform operators       |
+| [Walkthrough](docs/walkthrough.md)         | Developers               |
+| [Demo Flow](docs/demo.md)                  | Presenters               |
+| [Interview Prep](docs/interview.md)        | You                      |
+| [Troubleshooting](docs/troubleshooting.md) | Operations               |
